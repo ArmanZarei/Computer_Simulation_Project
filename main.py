@@ -52,7 +52,9 @@ class RequestHeap:
         self.bubble_up()
     
     def top(self):
-        return self.heap[1]
+        if self.ptr > 1:
+            return self.heap[1]
+        return None
     
     def pop(self):
         top = self.top()
@@ -61,6 +63,9 @@ class RequestHeap:
         self.bubble_down()
 
         return top
+    
+    def is_empty(self):
+        return self.ptr == 1
 
 test_requests = [
     Request(5, 3, 0),
