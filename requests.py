@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from typing import List
+
 import numpy as np
 import random
 
@@ -32,6 +34,10 @@ class Request:
     priority: int
     tolerance: int
     finish_service_time: int
+    in_queue_time: List[int]
+    out_queue_time: List[int]
+    out_service_time: List[int]
+    leave: bool
 
     @staticmethod
     def gen(interval_lambda, alpha) -> 'Request':
@@ -40,7 +46,11 @@ class Request:
             enter_time=Request.GlobalTime,
             priority=random_priority(),
             tolerance=random_tolerance(alpha),
-            finish_service_time=None
+            finish_service_time=None,
+            in_queue_time = [],
+            out_queue_time = [],
+            out_service_time = [],
+            leave=False,
         )
     def leave_time(self) -> int:
         return self.enter_time + self.tolerance
@@ -59,7 +69,7 @@ class Request:
 
 class RequestHeap:
     def __init__(self):
-        self.heap = [Request(-1, np.inf, 0, 0)]
+        self.heap = [Request(-1, np.inf, 0, 0, [], [], [], False)]
         self.__ignore = set()
         self.ptr = 1
 
