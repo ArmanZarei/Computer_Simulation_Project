@@ -42,6 +42,8 @@ class Request:
             tolerance=random_tolerance(alpha),
             finish_service_time=None
         )
+    def leave_time(self) -> int:
+        return self.enter_time + self.tolerance
     def __hash__(self):
         return id(self)
     def __gt__(self, r2: 'Request'):

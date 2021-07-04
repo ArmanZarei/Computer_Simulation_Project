@@ -1,4 +1,4 @@
-from requests import RequestHeap
+from requests import RequestHeap, Request
 import numpy as np
 
 
@@ -26,13 +26,29 @@ class ServiceProvider:
         queue_req = self.queue.top()
         queue_req_earliest_time = queue_req.enter_time if queue_req is not None else np.inf
         services_earliest_time = min([req.finish_service_time if req is not None else np.inf for req in self.services])
-
-        return min(queue_req_earliest_time, services_earliest_time)
+        services_earliest_leave_time = min(
+            [req.enter_time + req.tolerance if req is not None else np.inf for req in self.services])
+        return min(queue_req_earliest_time, services_earliest_time, services_earliest_leave_time)
 
     def get_done_requests(self):
         result = []
         for req_idx, req in enumerate(self.services):
             if req is None or req.finish_service_time < self.timer.current_time:
+                continue
+            result.append(req)
+            self.services[req_idx] = None
+            if not self.queue.is_empty():
+                self.__assign_request_to_a_service()
+            else:
+                self.busy_servies -= 1
+
+        return result
+
+    def get_leave_requests(self):
+        result = []
+        for req_idx, req in enumerate(self.services):
+            req: Request
+            if req is None or req.leave_time() > self.timer.current_time:
                 continue
             result.append(req)
             self.services[req_idx] = None

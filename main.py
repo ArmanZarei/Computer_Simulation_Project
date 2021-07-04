@@ -9,7 +9,6 @@ from timer import Timer
 
 class Pipeline:
     def __init__(self):
-
         self.metrics = Metric.get_instance()
         self.timer = Timer.get_instance()
 
@@ -36,7 +35,7 @@ class Pipeline:
         self.customers = list(
             reversed([requests.Request.gen(interval_lambda, alpha) for _ in range(5)])
         )
-        print(self.customers)
+
     def __get_next_services(self) -> int:
         return min([service.get_next_event_time() for service in self.services])
 
@@ -56,9 +55,12 @@ class Pipeline:
             self.timer.set_time(next)
             if len(self.customers) and self.customers[-1].enter_time == next:
                 self.reception.add_request(self.customers.pop(-1))
+            service_leave = service.get_leave_requests()
             for service in self.services:
                 done_requests = service.get_done_requests()
             reception_done = self.reception.get_done_requests()
+            reception_leave = self.reception.get_leave_requests()
+
             for request in reception_done:
                 who_to_send = random.randint(0, len(self.services) - 1)
                 self.services[who_to_send].add_request(request)
