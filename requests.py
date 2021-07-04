@@ -42,7 +42,8 @@ class Request:
             tolerance=random_tolerance(alpha),
             finish_service_time=None
         )
-
+    def __hash__(self):
+        return id(self)
     def __gt__(self, r2: 'Request'):
         if self.priority > r2.priority:
             return True
@@ -57,7 +58,14 @@ class Request:
 class RequestHeap:
     def __init__(self):
         self.heap = [Request(-1, np.inf, 0, 0)]
+        self.__ignore = set()
         self.ptr = 1
+
+    def ignore(self, request: Request) -> None:
+        self.__ignore.add(request)
+
+    def __len__(self):
+        return self.ptr - 1 - len(self.__ignore)
 
     def swap(self, ptr1, ptr2):
         self.heap[ptr1], self.heap[ptr2] = self.heap[ptr2], self.heap[ptr1]
@@ -89,18 +97,44 @@ class RequestHeap:
         self.bubble_up()
 
     def top(self):
-        if self.ptr > 1:
-            return self.heap[1]
+        while self.ptr > 1:
+            req = self.heap[1]
+            if req in self.__ignore:
+                self.remove()
+                self.__ignore.remove(req)
+            else:
+                return req
         return None
 
-    def pop(self):
-        top = self.top()
+    def remove(self):
         self.ptr -= 1
         self.heap[1] = self.heap[self.ptr]
         self.bubble_down()
-        self.heap.pop()
+        return self.heap.pop()
 
-        return top
+    def pop(self):
+        while self.top() in self.__ignore:
+             self.remove()
+        return self.remove()
 
     def is_empty(self):
         return self.ptr == 1
+
+if __name__ == '__main__':
+    requests = [
+        Request.gen(1, 1),
+        Request.gen(1, 1),
+        Request.gen(1, 1),
+        Request.gen(1, 1),
+    ]
+    heap = RequestHeap()
+    heap.add(requests[0])
+    heap.add(requests[1])
+    heap.add(requests[2])
+    heap.add(requests[3])
+
+    print(heap.top())
+    heap.ignore(heap.top())
+    print(heap.top())
+    heap.ignore(heap.top())
+    print(heap.pop())

@@ -36,7 +36,7 @@ class Pipeline:
         self.customers = list(
             reversed([requests.Request.gen(interval_lambda, alpha) for _ in range(5)])
         )
-
+        print(self.customers)
     def __get_next_services(self) -> int:
         return min([service.get_next_event_time() for service in self.services])
 
