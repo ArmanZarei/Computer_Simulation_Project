@@ -32,6 +32,7 @@ class Request:
     enter_time: int
     priority: int
     tolerance: int
+    finish_service_time: int
 
     @staticmethod
     def gen() -> 'Request':
@@ -40,6 +41,7 @@ class Request:
             enter_time=Request.GlobalTime,
             priority=random_priority(),
             tolerance=random_tolerance(),
+            finish_service_time=None
         )
 
     def __gt__(self, r2: 'Request'):
