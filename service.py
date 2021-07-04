@@ -19,7 +19,7 @@ class ServiceProvider:
     def __assign_request_to_a_service(self):
         req = self.queue.pop()
         service_idx = self.__get_random_service_idx()
-        req.time = self.timer + self.__get_random_service_time(service_idx)
+        req.time = self.timer.current_time + self.__get_random_service_time(service_idx)
         self.services[service_idx] = req
     
     def get_next_event_time(self):
