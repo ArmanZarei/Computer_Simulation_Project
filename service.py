@@ -22,7 +22,7 @@ class ServiceProvider:
         req.time = self.timer + self.__get_random_service_time(service_idx)
         self.services[service_idx] = req
     
-    def __get_next_event_time(self):
+    def get_next_event_time(self):
         queue_req = self.queue.top()
         queue_req_earliest_time = queue_req.time if queue_req is not None else np.inf
         services_earliest_time = min([req.time if req is not None else np.inf for req in self.services])

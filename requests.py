@@ -54,9 +54,8 @@ class Request:
 
 class RequestHeap:
     def __init__(self, size):
-        self.heap = [None for _ in range(size + 1)]
+        self.heap = [Request(-1, np.inf, 0)]
         self.ptr = 1
-        self.heap[0] = Request(-1, np.inf, 0)
 
     def swap(self, ptr1, ptr2):
         self.heap[ptr1], self.heap[ptr2] = self.heap[ptr2], self.heap[ptr1]
