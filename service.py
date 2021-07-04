@@ -32,7 +32,7 @@ class ServiceProvider:
     def get_done_requests(self):
         result = []
         for req_idx, req in enumerate(self.services):
-            if req is None or req.time < self.timer.now():
+            if req is None or req.time < self.timer.current_time:
                 continue
             result.append(req)
             self.services[req_idx] = None
