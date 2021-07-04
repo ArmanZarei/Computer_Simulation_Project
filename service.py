@@ -14,7 +14,7 @@ class ServiceProvider:
         return np.random.exponential(self.exp_lambdas[service_idx])
 
     def __get_random_service_idx(self):
-        return np.random.choice([service_idx for service_idx, service in self.services if service is None])
+        return np.random.choice([service_idx for service_idx, service in enumerate(self.services) if service is None])
 
     def __assign_request_to_a_service(self):
         req = self.queue.pop()
