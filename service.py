@@ -1,11 +1,11 @@
-from main import RequestHeap
+from requests import RequestHeap
 import numpy as np
 
 
 class ServiceProvider:
-    def __init__(self, services_count, exp_lambdas, queue_max_size, timer):
+    def __init__(self, services_count, exp_lambdas,  timer):
         self.exp_lambdas = exp_lambdas
-        self.queue = RequestHeap(queue_max_size)
+        self.queue = RequestHeap()
         self.services = [None for _ in range(services_count)]
         self.timer = timer
         self.busy_servies = 0

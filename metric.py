@@ -25,9 +25,7 @@ class Metric:
     leave = 'leave'
 
     def __init__(self):
-        if Metric.__metric is None:
-            Metric.__metric = self
-        else:
+        if Metric.__metric is not None:
             raise Exception('Call get_instance()')
         self.__data = {}
 
@@ -43,4 +41,6 @@ class Metric:
 
     @staticmethod
     def get_instance():
+        if not Metric.__metric:
+            Metric.__metric = Metric()
         return Metric.__metric

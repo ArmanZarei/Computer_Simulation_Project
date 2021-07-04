@@ -53,7 +53,7 @@ class Request:
         return "Time: %d, Priorty: %d, Tolerance: %d" % (self.enter_time, self.priority, self.tolerance)
 
 class RequestHeap:
-    def __init__(self, size):
+    def __init__(self):
         self.heap = [Request(-1, np.inf, 0)]
         self.ptr = 1
 
@@ -82,7 +82,7 @@ class RequestHeap:
                 break
 
     def add(self, req: Request):
-        self.heap[self.ptr] = req
+        self.heap.append(req)
         self.ptr += 1
         self.bubble_up()
 
@@ -96,6 +96,7 @@ class RequestHeap:
         self.ptr -= 1
         self.heap[1] = self.heap[self.ptr]
         self.bubble_down()
+        self.heap.pop()
 
         return top
     
@@ -106,6 +107,5 @@ test_requests = [Request.gen() for _ in range(50)]
 req_heap = RequestHeap(len(test_requests))
 for req in test_requests:
     req_heap.add(req)
-
 for _ in range(len(test_requests)):
     print(req_heap.pop())
