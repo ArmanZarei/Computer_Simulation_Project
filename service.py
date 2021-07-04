@@ -19,20 +19,20 @@ class ServiceProvider:
     def __assign_request_to_a_service(self):
         req = self.queue.pop()
         service_idx = self.__get_random_service_idx()
-        req.time = self.timer + self.__get_random_service_time(service_idx)
+        req.finish_service_time = self.timer.current_time + self.__get_random_service_time(service_idx)
         self.services[service_idx] = req
     
     def get_next_event_time(self):
         queue_req = self.queue.top()
-        queue_req_earliest_time = queue_req.time if queue_req is not None else np.inf
-        services_earliest_time = min([req.time if req is not None else np.inf for req in self.services])
+        queue_req_earliest_time = queue_req.enter_time if queue_req is not None else np.inf
+        services_earliest_time = min([req.finish_service_time if req is not None else np.inf for req in self.services])
 
         return min(queue_req_earliest_time, services_earliest_time)
 
     def get_done_requests(self):
         result = []
         for req_idx, req in enumerate(self.services):
-            if req is None or req.time < self.timer.now():
+            if req is None or req.finish_service_time < self.timer.current_time:
                 continue
             result.append(req)
             self.services[req_idx] = None
