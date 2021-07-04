@@ -1,15 +1,14 @@
 from dataclasses import dataclass
 import numpy as np
-import settings
 import random
 
 
-def random_tolerance() -> int:
-    return int(random.expovariate(1 / settings.alpha))
+def random_tolerance(alpha) -> int:
+    return int(random.expovariate(1 / alpha))
 
 
-def random_interval_lambda() -> int:
-    return int(random.expovariate(settings.interval_lambda))
+def random_interval_lambda(interval_lambda) -> int:
+    return int(random.expovariate(interval_lambda))
 
 
 def random_priority() -> int:
@@ -35,12 +34,12 @@ class Request:
     finish_service_time: int
 
     @staticmethod
-    def gen() -> 'Request':
-        Request.GlobalTime += random_interval_lambda()
+    def gen(interval_lambda, alpha) -> 'Request':
+        Request.GlobalTime += random_interval_lambda(interval_lambda)
         return Request(
             enter_time=Request.GlobalTime,
             priority=random_priority(),
-            tolerance=random_tolerance(),
+            tolerance=random_tolerance(alpha),
             finish_service_time=None
         )
 
@@ -54,9 +53,10 @@ class Request:
     def __str__(self):
         return "Time: %d, Priorty: %d, Tolerance: %d" % (self.enter_time, self.priority, self.tolerance)
 
+
 class RequestHeap:
     def __init__(self):
-        self.heap = [Request(-1, np.inf, 0)]
+        self.heap = [Request(-1, np.inf, 0, 0)]
         self.ptr = 1
 
     def swap(self, ptr1, ptr2):
@@ -92,7 +92,7 @@ class RequestHeap:
         if self.ptr > 1:
             return self.heap[1]
         return None
-    
+
     def pop(self):
         top = self.top()
         self.ptr -= 1
@@ -101,13 +101,6 @@ class RequestHeap:
         self.heap.pop()
 
         return top
-    
+
     def is_empty(self):
         return self.ptr == 1
-
-test_requests = [Request.gen() for _ in range(50)]
-req_heap = RequestHeap(len(test_requests))
-for req in test_requests:
-    req_heap.add(req)
-for _ in range(len(test_requests)):
-    print(req_heap.pop())

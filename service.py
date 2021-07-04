@@ -3,7 +3,7 @@ import numpy as np
 
 
 class ServiceProvider:
-    def __init__(self, services_count, exp_lambdas,  timer):
+    def __init__(self, services_count, exp_lambdas, timer):
         self.exp_lambdas = exp_lambdas
         self.queue = RequestHeap()
         self.services = [None for _ in range(services_count)]
@@ -12,16 +12,16 @@ class ServiceProvider:
 
     def __get_random_service_time(self, service_idx):
         return np.random.exponential(self.exp_lambdas[service_idx])
-    
+
     def __get_random_service_idx(self):
         return np.random.choice([service_idx for service_idx, service in self.services if service is None])
-    
+
     def __assign_request_to_a_service(self):
         req = self.queue.pop()
         service_idx = self.__get_random_service_idx()
         req.finish_service_time = self.timer.current_time + self.__get_random_service_time(service_idx)
         self.services[service_idx] = req
-    
+
     def get_next_event_time(self):
         queue_req = self.queue.top()
         queue_req_earliest_time = queue_req.enter_time if queue_req is not None else np.inf
@@ -40,7 +40,7 @@ class ServiceProvider:
                 self.__assign_request_to_a_service()
             else:
                 self.busy_servies -= 1
-        
+
         return result
 
     def add_request(self, req):

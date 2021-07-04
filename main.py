@@ -1,7 +1,6 @@
 import random
 from typing import List
 import numpy as np
-import settings
 import requests
 from service import ServiceProvider
 from metric import Metric
@@ -15,6 +14,7 @@ class Pipeline:
         self.timer = Timer.get_instance()
 
         N, interval_lambda, reception_rate, alpha = map(float, input().split())
+        N = int(N)
 
         self.reception = ServiceProvider(
             1,
@@ -32,10 +32,10 @@ class Pipeline:
                     self.timer
                 )
             )
-        settings.interval_lambda = interval_lambda
-        settings.alpha = alpha
 
-        self.customers = list(reversed([requests.Request.gen() for _ in range(settings.number_of_customers)]))
+        self.customers = list(
+            reversed([requests.Request.gen(interval_lambda, alpha) for _ in range(5)])
+        )
 
     def __get_next_services(self) -> int:
         return min([service.get_next_event_time() for service in self.services])
@@ -50,6 +50,7 @@ class Pipeline:
     def loop(self):
         while True:
             next = self.__get_next_time()
+            print(self.timer.current_time, next)
             if next == np.inf:
                 break
             self.timer.set_time(next)
@@ -61,8 +62,6 @@ class Pipeline:
             for request in reception_done:
                 who_to_send = random.randint(0, len(self.services) - 1)
                 self.services[who_to_send].add_request(request)
-
-
 
 
 if __name__ == '__main__':

@@ -11,6 +11,6 @@ class Timer():
         if not Timer.__timer:
             Timer.__timer = Timer(0)
         return Timer.__timer
-    
+
     def set_time(self, time):
         self.current_time = time
