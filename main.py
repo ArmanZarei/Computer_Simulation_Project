@@ -34,7 +34,7 @@ class Pipeline:
             )
 
         self.customers_ptr = 0
-        self.customers = [requests.Request.gen(interval_lambda, alpha) for _ in range(10_000)]
+        self.customers = [requests.Request.gen(interval_lambda, alpha) for _ in range(10_000_0)]
 
     def __get_next_services(self) -> int:
         return min([service.get_next_event_time() for service in self.services])
