@@ -34,7 +34,7 @@ class Pipeline:
             )
 
         self.customers_ptr = 0
-        self.customers = [requests.Request.gen(interval_lambda, alpha) for _ in range(10_000_0)]
+        self.customers = [requests.Request.gen(interval_lambda, alpha) for _ in range(10_000)]
 
     def __get_next_services(self) -> int:
         return min([service.get_next_event_time() for service in self.services])
@@ -82,6 +82,32 @@ class Pipeline:
 
         print(f'{sum([request.leave for request in self.customers])} people left the system')
 
+        average_queues_length = self.calculate_average_queues_length()
+        print(f'Reception average queue length', average_queues_length[0])
+        for i in range(len(self.services)):
+            print(f'Server {i} average queue length {average_queues_length[i + 1]}')
+
+    def calculate_average_queues_length(self) -> List[float]:
+        reception_total = 0
+        reception_cnt = 0
+        services_total = [0 for _ in range(len(self.services))]
+        services_cnt = [0 for _ in range(len(self.services))]
+        for request in self.customers:
+            if len(request.out_queue_time):
+                reception_total += request.out_queue_time[0] - request.in_queue_time[0]
+                reception_cnt += 1
+            if len(request.out_queue_time) == 2:
+                services_total[request.part] += request.out_queue_time[1] - request.in_queue_time[1]
+                services_cnt[request.part] += 1
+        result = [
+                     reception_total / reception_cnt
+                 ] + [
+                     services_total[i] / services_cnt[i] for i in range(len(self.services))
+                 ]
+
+        return result
+
+        pass
 
     def calculate_average(self, priority: Optional[int], method):
         total = 0

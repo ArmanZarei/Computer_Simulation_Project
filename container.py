@@ -11,7 +11,13 @@ class Container:
         self.queues_ptr: List[int] = [0 for _ in range(5)]
         self.timer = timer
 
-
+    def size(self, priority:Optional[int]) -> int:
+        if priority:
+            return len(self.queues[priority]) - self.queues_ptr[priority]
+        else:
+            return sum(
+                [len(self.queues[i]) - self.queues_ptr[i] for i in range(5)]
+            )
 
     def remove_leave(self) -> List[Request]:
         removed = []
