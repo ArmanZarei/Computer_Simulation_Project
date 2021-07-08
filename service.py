@@ -11,7 +11,7 @@ class ServiceProvider:
         self.busy_servies = 0
 
     def __get_random_service_time(self, service_idx):
-        return np.random.exponential(self.exp_lambdas[service_idx])
+        return int(np.random.exponential(self.exp_lambdas[service_idx]))
 
     def __get_random_service_idx(self):
         return np.random.choice([service_idx for service_idx, service in enumerate(self.services) if service is None])
@@ -38,7 +38,7 @@ class ServiceProvider:
             if req is None or req.finish_service_time < self.timer.current_time:
                 continue
             result.append(req)
-            req.out_service_time = self.timer.current_time
+            req.out_service_time.append(self.timer.current_time)
             self.services[req_idx] = None
             if not self.queue.is_empty():
                 self.__assign_request_to_a_service()
@@ -54,7 +54,7 @@ class ServiceProvider:
             if req is None or req.leave_time() > self.timer.current_time:
                 continue
             result.append(req)
-            req.out_service_time = self.timer.current_time
+            req.out_service_time.append(self.timer.current_time)
             req.leave = True
 
             self.services[req_idx] = None
@@ -67,7 +67,7 @@ class ServiceProvider:
 
     def add_request(self, req):
         req:Request
-        req.in_queue_time = self.timer.current_time
+        req.in_queue_time.append(self.timer.current_time)
         self.queue.add(req)
         if self.busy_servies < len(self.services):
             self.__assign_request_to_a_service()

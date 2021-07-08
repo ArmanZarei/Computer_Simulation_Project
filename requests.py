@@ -38,6 +38,7 @@ class Request:
     out_queue_time: List[int]
     out_service_time: List[int]
     leave: bool
+    part: int
 
     @staticmethod
     def gen(interval_lambda, alpha) -> 'Request':
@@ -47,15 +48,19 @@ class Request:
             priority=random_priority(),
             tolerance=random_tolerance(alpha),
             finish_service_time=None,
-            in_queue_time = [],
-            out_queue_time = [],
-            out_service_time = [],
+            in_queue_time=[],
+            out_queue_time=[],
+            out_service_time=[],
             leave=False,
+            part=None,
         )
+
     def leave_time(self) -> int:
         return self.enter_time + self.tolerance
+
     def __hash__(self):
         return id(self)
+
     def __gt__(self, r2: 'Request'):
         if self.priority > r2.priority:
             return True
@@ -69,7 +74,7 @@ class Request:
 
 class RequestHeap:
     def __init__(self):
-        self.heap = [Request(-1, np.inf, 0, 0, [], [], [], False)]
+        self.heap = [Request(-1, np.inf, 0, 0, [], [], [], False, None)]
         self.__ignore = set()
         self.ptr = 1
 
@@ -126,11 +131,12 @@ class RequestHeap:
 
     def pop(self):
         while self.top() in self.__ignore:
-             self.remove()
+            self.remove()
         return self.remove()
 
     def is_empty(self):
         return self.ptr == 1
+
 
 if __name__ == '__main__':
     requests = [

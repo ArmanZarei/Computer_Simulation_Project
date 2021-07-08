@@ -1,5 +1,6 @@
+import collections
 import random
-from typing import List
+from typing import List, Optional
 import numpy as np
 import requests
 from service import ServiceProvider
@@ -33,8 +34,7 @@ class Pipeline:
             )
 
         self.customers_ptr = 0
-        self.customers = [requests.Request.gen(interval_lambda, alpha) for _ in range(10_000_000)]
-
+        self.customers = [requests.Request.gen(interval_lambda, alpha) for _ in range(10_000)]
 
     def __get_next_services(self) -> int:
         return min([service.get_next_event_time() for service in self.services])
@@ -64,7 +64,35 @@ class Pipeline:
 
             for request in reception_done:
                 who_to_send = random.randint(0, len(self.services) - 1)
+                request.part = who_to_send
                 self.services[who_to_send].add_request(request)
+        self.calculate_metrics()
+
+    def calculate_metrics(self):
+        print(self.customers[0].__dict__)
+        system_time = lambda request: request.out_service_time[-1] - request.enter_time
+        for priority in [None] + [i for i in range(5)]:
+            print(f'Average system time ({priority if priority else "All"})',
+                  self.calculate_average(priority, system_time))
+
+        wait_time = lambda request: sum(request.out_queue_time) - sum(request.in_queue_time)
+        for priority in [None] + [i for i in range(5)]:
+            print(f'Average wait time ({priority if priority else "All"})',
+                  self.calculate_average(priority, wait_time))
+
+        print(f'{sum([request.leave for request in self.customers])} people left the system')
+
+
+    def calculate_average(self, priority: Optional[int], method):
+        total = 0
+        cnt = 0
+        for request in self.customers:
+            if priority and request.priority != priority:
+                continue
+            total += method(request)
+            total += request.finish_service_time - request.enter_time
+            cnt += 1
+        return total / cnt
 
 
 if __name__ == '__main__':
