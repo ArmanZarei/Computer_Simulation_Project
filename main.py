@@ -18,7 +18,7 @@ class Pipeline:
 
         self.reception = ServiceProvider(
             1,
-            [reception_rate],
+            [1/reception_rate],
             self.timer
         )
 
@@ -28,13 +28,13 @@ class Pipeline:
             self.services.append(
                 ServiceProvider(
                     len(service_rates),
-                    service_rates,
+                    [1/rate for rate in service_rates],
                     self.timer
                 )
             )
 
         self.customers_ptr = 0
-        self.customers = [requests.Request.gen(interval_lambda, alpha) for _ in range(10_000)]
+        self.customers = [requests.Request.gen(interval_lambda, alpha) for _ in range(10)]
 
     def __get_next_services(self) -> int:
         return min([service.get_next_event_time() for service in self.services])
@@ -46,10 +46,12 @@ class Pipeline:
             self.__get_next_services()
         )
 
+    def print(self, customer: requests.Request):
+        print(customer.enter_time, customer.out_service_time, customer.leave, customer.leave_time())
+
     def loop(self):
         while True:
             next = self.__get_next_time()
-            # print(self.timer.current_time, next)
             if next == np.inf:
                 break
             self.timer.set_time(next)
@@ -61,23 +63,24 @@ class Pipeline:
                 done_requests = service.get_done_requests()
             reception_done = self.reception.get_done_requests()
             reception_leave = self.reception.get_leave_requests()
-
             for request in reception_done:
                 who_to_send = random.randint(0, len(self.services) - 1)
                 request.part = who_to_send
                 self.services[who_to_send].add_request(request)
+        for req in self.customers:
+            self.print(req)
         self.calculate_metrics()
 
+
     def calculate_metrics(self):
-        print(self.customers[0].__dict__)
         system_time = lambda request: request.out_service_time[-1] - request.enter_time
         for priority in [None] + [i for i in range(5)]:
-            print(f'Average system time ({priority if priority else "All"})',
+            print(f'Average system time ({priority if priority is not None else "All"})',
                   self.calculate_average(priority, system_time))
 
         wait_time = lambda request: sum(request.out_queue_time) - sum(request.in_queue_time)
         for priority in [None] + [i for i in range(5)]:
-            print(f'Average wait time ({priority if priority else "All"})',
+            print(f'Average wait time ({priority if priority is not None else "All"})',
                   self.calculate_average(priority, wait_time))
 
         print(f'{sum([request.leave for request in self.customers])} people left the system')
@@ -102,7 +105,7 @@ class Pipeline:
         result = [
                      reception_total / reception_cnt
                  ] + [
-                     services_total[i] / services_cnt[i] for i in range(len(self.services))
+                        (services_total[i] / services_cnt[i] if services_cnt[i] else 0) for i in range(len(self.services))
                  ]
 
         return result
@@ -116,8 +119,9 @@ class Pipeline:
             if priority and request.priority != priority:
                 continue
             total += method(request)
-            total += request.finish_service_time - request.enter_time
             cnt += 1
+        if not cnt:
+            return 0
         return total / cnt
 
 

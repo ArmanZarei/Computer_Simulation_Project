@@ -138,21 +138,3 @@ class RequestHeap:
         return self.ptr == 1
 
 
-if __name__ == '__main__':
-    requests = [
-        Request.gen(1, 1),
-        Request.gen(1, 1),
-        Request.gen(1, 1),
-        Request.gen(1, 1),
-    ]
-    heap = RequestHeap()
-    heap.add(requests[0])
-    heap.add(requests[1])
-    heap.add(requests[2])
-    heap.add(requests[3])
-
-    print(heap.top())
-    heap.ignore(heap.top())
-    print(heap.top())
-    heap.ignore(heap.top())
-    print(heap.pop())
