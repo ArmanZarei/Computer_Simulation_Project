@@ -1,11 +1,12 @@
 import collections
 import random
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import numpy as np
 import requests
 from service import ServiceProvider
 from metric import Metric
 from timer import Timer
+import matplotlib.pyplot as plt
 
 
 class Pipeline:
@@ -18,7 +19,7 @@ class Pipeline:
 
         self.reception = ServiceProvider(
             1,
-            [1/reception_rate],
+            [1 / reception_rate],
             self.timer
         )
 
@@ -28,7 +29,7 @@ class Pipeline:
             self.services.append(
                 ServiceProvider(
                     len(service_rates),
-                    [1/rate for rate in service_rates],
+                    [1 / rate for rate in service_rates],
                     self.timer
                 )
             )
@@ -52,6 +53,9 @@ class Pipeline:
     def loop(self):
         while True:
             next = self.__get_next_time()
+            print(self.timer.current_time, next)
+            print(self.reception.get_next_event_time())
+            print(self.__get_next_services())
             if next == np.inf:
                 break
             self.timer.set_time(next)
@@ -59,8 +63,8 @@ class Pipeline:
                 self.reception.add_request(self.customers[self.customers_ptr])
                 self.customers_ptr += 1
             for service in self.services:
-                service_leave = service.get_leave_requests()
                 done_requests = service.get_done_requests()
+                service_leave = service.get_leave_requests()
             reception_done = self.reception.get_done_requests()
             reception_leave = self.reception.get_leave_requests()
             for request in reception_done:
@@ -70,7 +74,6 @@ class Pipeline:
         for req in self.customers:
             self.print(req)
         self.calculate_metrics()
-
 
     def calculate_metrics(self):
         system_time = lambda request: request.out_service_time[-1] - request.enter_time
@@ -89,6 +92,8 @@ class Pipeline:
         print(f'Reception average queue length', average_queues_length[0])
         for i in range(len(self.services)):
             print(f'Server {i} average queue length {average_queues_length[i + 1]}')
+        self.draw_plots()
+        self.calculate_frequency()
 
     def calculate_average_queues_length(self) -> List[float]:
         reception_total = 0
@@ -105,7 +110,7 @@ class Pipeline:
         result = [
                      reception_total / reception_cnt
                  ] + [
-                        (services_total[i] / services_cnt[i] if services_cnt[i] else 0) for i in range(len(self.services))
+                     (services_total[i] / services_cnt[i] if services_cnt[i] else 0) for i in range(len(self.services))
                  ]
 
         return result
@@ -123,6 +128,59 @@ class Pipeline:
         if not cnt:
             return 0
         return total / cnt
+
+    def plot(self, name: str, data: List[int]):
+        plt.plot(data)
+        plt.title(name)
+        plt.show()
+
+    def partial_sum(self, data: List[int]):
+        for i in range(1, len(data)):
+            data[i] += data[i - 1]
+
+    def draw_plots(self):
+        reception_queue_length = [0 for _ in range(self.timer.current_time)]
+        service_queue_length = [[0 for _ in range(self.timer.current_time)] for j in range(len(self.services))]
+        for request in self.customers:
+            if len(request.in_queue_time):
+                reception_queue_length[request.in_queue_time[0]] += 1
+                reception_queue_length[request.out_queue_time[0]] -= 1
+            if len(request.in_queue_time) == 2:
+                service_queue_length[request.part][request.in_queue_time[1]] += 1
+                service_queue_length[request.part][request.out_queue_time[1]] -= 1
+        self.partial_sum(reception_queue_length)
+        self.plot('Reception Queues length', reception_queue_length)
+        for i in range(len(self.services)):
+            self.partial_sum(service_queue_length[i])
+            self.plot(f'Service {i} Queues length', service_queue_length[i])
+
+    def calculate_frequency(self):
+        system_times = [[] for _ in range(5)]
+        wait_times = [[] for _ in range(5)]
+        for request in self.customers:
+            # print(len(request.in_queue_time))
+            # for i in range(len(request.in_queue_time)):
+            #     print(request.in_queue_time[i], request.out_queue_time[i], request.out_service_time[i])
+            # print(sum(request.out_service_time) - sum(request.out_queue_time))
+            # print('---------')
+
+            system_times[request.priority].append(
+                sum(request.out_service_time) - sum(request.out_queue_time)
+            )
+            wait_times[request.priority].append(
+                sum(request.out_queue_time) - sum(request.in_queue_time)
+            )
+        # print(self.customers)
+        # print(system_times)
+        for priority in range(5):
+            plt.hist(system_times[priority])
+            plt.title(f"System time frequency priority {priority}")
+            plt.show()
+
+        for priority in range(5):
+            plt.hist(wait_times[priority])
+            plt.title(f"Wait time frequency priority {priority}")
+            plt.show()
 
 
 if __name__ == '__main__':
