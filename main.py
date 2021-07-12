@@ -5,7 +5,6 @@ from typing import List, Optional, Tuple
 import numpy as np
 import requests
 from service import ServiceProvider
-from metric import Metric
 from timer import Timer
 import matplotlib.pyplot as plt
 
