@@ -1,4 +1,5 @@
 import collections
+import datetime
 import random
 from typing import List, Optional, Tuple
 import numpy as np
@@ -11,7 +12,6 @@ import matplotlib.pyplot as plt
 
 class Pipeline:
     def __init__(self):
-        self.metrics = Metric.get_instance()
         self.timer = Timer.get_instance()
 
         N, interval_lambda, reception_rate, alpha = map(float, input().split())
@@ -19,7 +19,7 @@ class Pipeline:
 
         self.reception = ServiceProvider(
             1,
-            [1 / reception_rate],
+            [1/reception_rate],
             self.timer
         )
 
@@ -29,13 +29,12 @@ class Pipeline:
             self.services.append(
                 ServiceProvider(
                     len(service_rates),
-                    [1 / rate for rate in service_rates],
+                    [1/rate for rate in service_rates],
                     self.timer
                 )
             )
-
         self.customers_ptr = 0
-        self.customers = [requests.Request.gen(interval_lambda, alpha) for _ in range(10)]
+        self.customers = [requests.Request.gen(interval_lambda, alpha) for _ in range(10_000_000)]
 
     def __get_next_services(self) -> int:
         return min([service.get_next_event_time() for service in self.services])
@@ -47,32 +46,63 @@ class Pipeline:
             self.__get_next_services()
         )
 
-    def print(self, customer: requests.Request):
-        print(customer.enter_time, customer.out_service_time, customer.leave, customer.leave_time())
+    # def print(self, customer: requests.Request):
+    #     print(customer.enter_time, customer.out_service_time, customer.leave, customer.leave_time())
 
     def loop(self):
+        now = datetime.datetime.now()
+        print(now)
         while True:
+            event = None
             next = self.__get_next_time()
-            print(self.timer.current_time, next)
-            print(self.reception.get_next_event_time())
-            print(self.__get_next_services())
+            # print('-------')
+            # print(self.timer.current_time)
+            # print(next)
+            # print(np.inf if not self.customers_ptr != len(self.customers) else self.customers[self.customers_ptr].enter_time)
+            # print(self.reception.get_next_event_time())
+            # print(self.__get_next_services())
             if next == np.inf:
                 break
             self.timer.set_time(next)
             if self.customers_ptr != len(self.customers) and self.customers[self.customers_ptr].enter_time == next:
+                # print('Add request to reception event')
+                event = 1
                 self.reception.add_request(self.customers[self.customers_ptr])
                 self.customers_ptr += 1
             for service in self.services:
-                done_requests = service.get_done_requests()
-                service_leave = service.get_leave_requests()
+                if service.get_done_requests():
+                    # print('Done request event')
+                    event = 2
+                if service.get_leave_requests():
+                    # print('Service left')
+                    event = 6
+                # service_leave = service.get_leave_requests()
             reception_done = self.reception.get_done_requests()
             reception_leave = self.reception.get_leave_requests()
+            if reception_done:
+                # print('Reception Done event')
+                event = 3
+            # print(reception_leave)
+            if reception_leave:
+                # print('Reception left')
+                event = 4
             for request in reception_done:
                 who_to_send = random.randint(0, len(self.services) - 1)
                 request.part = who_to_send
                 self.services[who_to_send].add_request(request)
-        for req in self.customers:
-            self.print(req)
+            if event is None:
+                raise Exception
+        for service in self.services + [self.reception]:
+            left = service.container.left
+            for req in left:
+                if len(req.in_queue_time) != len(req.out_queue_time):
+                    req.out_queue_time.append(req.leave_time())
+                if len(req.in_queue_time) != len(req.out_service_time):
+                    req.out_service_time.append(req.leave_time())
+        # for request in self.customers:
+        #     print(request.out_service_time, request.out_queue_time, request.in_queue_time)
+        # print(self.timer.current_time)
+        print((datetime.datetime.now()-now).total_seconds())
         self.calculate_metrics()
 
     def calculate_metrics(self):
@@ -92,25 +122,23 @@ class Pipeline:
         print(f'Reception average queue length', average_queues_length[0])
         for i in range(len(self.services)):
             print(f'Server {i} average queue length {average_queues_length[i + 1]}')
+
+        self.timer.current_time += 1
         self.draw_plots()
         self.calculate_frequency()
 
     def calculate_average_queues_length(self) -> List[float]:
         reception_total = 0
-        reception_cnt = 0
         services_total = [0 for _ in range(len(self.services))]
-        services_cnt = [0 for _ in range(len(self.services))]
         for request in self.customers:
             if len(request.out_queue_time):
                 reception_total += request.out_queue_time[0] - request.in_queue_time[0]
-                reception_cnt += 1
             if len(request.out_queue_time) == 2:
                 services_total[request.part] += request.out_queue_time[1] - request.in_queue_time[1]
-                services_cnt[request.part] += 1
         result = [
-                     reception_total / reception_cnt
+                     reception_total / self.timer.current_time
                  ] + [
-                     (services_total[i] / services_cnt[i] if services_cnt[i] else 0) for i in range(len(self.services))
+                     (services_total[i] / self.timer.current_time) for i in range(len(self.services))
                  ]
 
         return result
@@ -130,7 +158,7 @@ class Pipeline:
         return total / cnt
 
     def plot(self, name: str, data: List[int]):
-        plt.plot(data)
+        plt.scatter([i for i in range(len(data))], data)
         plt.title(name)
         plt.show()
 
@@ -142,6 +170,11 @@ class Pipeline:
         reception_queue_length = [0 for _ in range(self.timer.current_time)]
         service_queue_length = [[0 for _ in range(self.timer.current_time)] for j in range(len(self.services))]
         for request in self.customers:
+            # print(self.timer.current_time)
+            # print(request.leave)
+            # print(request.in_queue_time)
+            # print(request.out_queue_time)
+            # print(request.part)
             if len(request.in_queue_time):
                 reception_queue_length[request.in_queue_time[0]] += 1
                 reception_queue_length[request.out_queue_time[0]] -= 1
@@ -158,27 +191,19 @@ class Pipeline:
         system_times = [[] for _ in range(5)]
         wait_times = [[] for _ in range(5)]
         for request in self.customers:
-            # print(len(request.in_queue_time))
-            # for i in range(len(request.in_queue_time)):
-            #     print(request.in_queue_time[i], request.out_queue_time[i], request.out_service_time[i])
-            # print(sum(request.out_service_time) - sum(request.out_queue_time))
-            # print('---------')
-
             system_times[request.priority].append(
                 sum(request.out_service_time) - sum(request.out_queue_time)
             )
             wait_times[request.priority].append(
                 sum(request.out_queue_time) - sum(request.in_queue_time)
             )
-        # print(self.customers)
-        # print(system_times)
         for priority in range(5):
-            plt.hist(system_times[priority])
+            plt.hist(system_times[priority], bins=100)
             plt.title(f"System time frequency priority {priority}")
             plt.show()
 
         for priority in range(5):
-            plt.hist(wait_times[priority])
+            plt.hist(wait_times[priority], bins=100)
             plt.title(f"Wait time frequency priority {priority}")
             plt.show()
 

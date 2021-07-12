@@ -35,21 +35,18 @@ class ServiceProvider:
         # queue_req = self.queue.top()
         # queue_req = self.container.next_request(pop=False)
         if self.busy_servies < len(self.services) and not self.container.is_empty():
-            print(self.busy_servies)
-            print(self.services)
-            print(self.container.__dict__)
-            print('here')
+            print('1')
             return self.timer.current_time
         # queue_req_earliest_time = queue_req.enter_time if queue_req is not None else np.inf
-        queue_req_earliest_leave_time = self.container.get_next_leave_time()
+        # queue_req_earliest_leave_time = self.container.get_next_leave_time()
         services_earliest_time = min(
             [np.inf] + [req.finish_service_time if req is not None else np.inf for req in self.services])
         services_earliest_leave_time = min(
             [np.inf] + [req.enter_time + req.tolerance if req is not None else np.inf for req in self.services]
         )
+        # print(services_earliest_time, services_earliest_leave_time)
 
-        return min(services_earliest_time, services_earliest_leave_time,
-                   queue_req_earliest_leave_time)
+        return min(services_earliest_time, services_earliest_leave_time)
 
     def __try_to_assign(self):
         while self.busy_servies < len(self.services) and not self.container.is_empty():
@@ -79,6 +76,9 @@ class ServiceProvider:
         result = []
         for req_idx, req in enumerate(self.services):
             req: Request
+            # if req:
+                # print('-', req)
+                # print('+', req.leave_time(), self.timer.current_time)
             if req is None or req.leave_time() > self.timer.current_time:
                 continue
             result.append(req)
@@ -89,11 +89,11 @@ class ServiceProvider:
             req.leave = True
             req.out_service_time.append(self.timer.current_time)
 
-        for req in self.container.remove_leave():
-            req.leave = True
-            req.out_queue_time.append(self.timer.current_time)
-            req.out_service_time.append(self.timer.current_time)
-            result.append(req)
+        # for req in self.container.remove_leave():
+        #     req.leave = True
+        #     req.out_queue_time.append(self.timer.current_time)
+        #     req.out_service_time.append(self.timer.current_time)
+        #     result.append(req)
         self.__try_to_assign()
 
         return result

@@ -6,12 +6,15 @@ import random
 
 
 def random_tolerance(alpha) -> int:
-    return int(random.expovariate(1 / alpha))
+    return int(np.random.exponential(alpha))
 
 
 def random_interval_lambda(interval_lambda) -> int:
-    return int(random.expovariate(interval_lambda))
+    return np.random.exponential(1/interval_lambda)
 
+# possion l
+# E(exp) = 1/l = 1/input_parm
+#
 
 def random_priority() -> int:
     x = random.random()
@@ -44,7 +47,7 @@ class Request:
     def gen(interval_lambda, alpha) -> 'Request':
         Request.GlobalTime += random_interval_lambda(interval_lambda)
         return Request(
-            enter_time=Request.GlobalTime,
+            enter_time=int(Request.GlobalTime),
             priority=random_priority(),
             tolerance=random_tolerance(alpha),
             finish_service_time=None,
