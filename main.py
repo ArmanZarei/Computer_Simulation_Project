@@ -34,7 +34,7 @@ class Pipeline:
                 )
             )
         self.customers_ptr = 0
-        self.customers = [requests.Request.gen(interval_lambda, alpha) for _ in range(10_000_000)]
+        self.customers = [requests.Request.gen(interval_lambda, alpha) for _ in range(1_000_000)]
 
     def __get_next_services(self) -> int:
         return min([service.get_next_event_time() for service in self.services])
@@ -95,6 +95,7 @@ class Pipeline:
         for service in self.services + [self.reception]:
             left = service.container.left
             for req in left:
+                req.leave = True
                 if len(req.in_queue_time) != len(req.out_queue_time):
                     req.out_queue_time.append(req.leave_time())
                 if len(req.in_queue_time) != len(req.out_service_time):
@@ -158,7 +159,7 @@ class Pipeline:
         return total / cnt
 
     def plot(self, name: str, data: List[int]):
-        plt.scatter([i for i in range(len(data))], data)
+        plt.hist(data, bins=100,)#, [i for i in range(len(data))])
         plt.title(name)
         plt.show()
 
