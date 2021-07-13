@@ -10,11 +10,8 @@ def random_tolerance(alpha) -> int:
 
 
 def random_interval_lambda(interval_lambda) -> int:
-    return np.random.exponential(1/interval_lambda)
+    return np.random.exponential(1 / interval_lambda)
 
-# possion l
-# E(exp) = 1/l = 1/input_parm
-#
 
 def random_priority() -> int:
     x = random.random()
@@ -31,6 +28,19 @@ def random_priority() -> int:
 
 @dataclass
 class Request:
+    """
+    Attributes:
+        enter_time: time that customer enter system
+        priority: priority of customer [0, 4]
+        tolerance: tolerance time of customer
+        finish_service_time: this field is for ServiceProvider
+        in_queue_time: list of times that request entered a queue
+        out_queue_time: list of times that request exit a queue
+        out_service_time: list of times that request service is done
+        leave: True if customer left the system else False
+        part: id of service
+    """
+
     GlobalTime = 0
 
     enter_time: int
@@ -44,7 +54,7 @@ class Request:
     part: int
 
     @staticmethod
-    def gen(interval_lambda, alpha) -> 'Request':
+    def gen(interval_lambda, alpha) -> "Request":
         Request.GlobalTime += random_interval_lambda(interval_lambda)
         return Request(
             enter_time=int(Request.GlobalTime),
@@ -64,7 +74,7 @@ class Request:
     def __hash__(self):
         return id(self)
 
-    def __gt__(self, r2: 'Request'):
+    def __gt__(self, r2: "Request"):
         if self.priority > r2.priority:
             return True
         elif self.priority == r2.priority and self.enter_time < r2.enter_time:
@@ -72,72 +82,8 @@ class Request:
         return False
 
     def __str__(self):
-        return "Time: %d, Priorty: %d, Tolerance: %d" % (self.enter_time, self.priority, self.tolerance)
-
-
-class RequestHeap:
-    def __init__(self):
-        self.heap = [Request(-1, np.inf, 0, 0, [], [], [], False, None)]
-        self.__ignore = set()
-        self.ptr = 1
-
-    def ignore(self, request: Request) -> None:
-        self.__ignore.add(request)
-
-    def __len__(self):
-        return self.ptr - 1 - len(self.__ignore)
-
-    def swap(self, ptr1, ptr2):
-        self.heap[ptr1], self.heap[ptr2] = self.heap[ptr2], self.heap[ptr1]
-
-    def bubble_up(self):
-        ptr = self.ptr - 1
-        while self.heap[ptr] > self.heap[ptr // 2]:
-            self.swap(ptr, ptr // 2)
-            ptr = ptr // 2
-
-    def bubble_down(self):
-        ptr = 1
-        while True:
-            if 2 * ptr + 1 < self.ptr and self.heap[ptr] < self.heap[ptr * 2 + 1]:
-                tmp_ptr = 2 * ptr + 1
-                if self.heap[ptr * 2] > self.heap[ptr * 2 + 1]:
-                    tmp_ptr = ptr * 2
-                self.swap(ptr, tmp_ptr)
-                ptr = tmp_ptr
-            elif 2 * ptr < self.ptr and self.heap[ptr] < self.heap[ptr * 2]:
-                self.swap(ptr, ptr * 2)
-                ptr *= 2
-            else:
-                break
-
-    def add(self, req: Request):
-        self.heap.append(req)
-        self.ptr += 1
-        self.bubble_up()
-
-    def top(self):
-        while self.ptr > 1:
-            req = self.heap[1]
-            if req in self.__ignore:
-                self.remove()
-                self.__ignore.remove(req)
-            else:
-                return req
-        return None
-
-    def remove(self):
-        self.ptr -= 1
-        self.heap[1] = self.heap[self.ptr]
-        self.bubble_down()
-        return self.heap.pop()
-
-    def pop(self):
-        while self.top() in self.__ignore:
-            self.remove()
-        return self.remove()
-
-    def is_empty(self):
-        return self.ptr == 1
-
-
+        return "Time: %d, Priorty: %d, Tolerance: %d" % (
+            self.enter_time,
+            self.priority,
+            self.tolerance,
+        )
