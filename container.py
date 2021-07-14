@@ -25,8 +25,8 @@ class Container:
         for i in range(4, -1, -1):
             while self.queues_ptr[i] < len(self.queues[i]):
                 if (
-                    self.queues[i][self.queues_ptr[i]].leave_time()
-                    <= self.timer.current_time
+                        self.queues[i][self.queues_ptr[i]].leave_time()
+                        <= self.timer.current_time
                 ):
                     self.left.append(self.queues[i][self.queues_ptr[i]])
                     self.queues_ptr[i] += 1

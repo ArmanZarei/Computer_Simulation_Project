@@ -18,7 +18,6 @@ class Pipeline:
         services: list of services ServiceProvider
         customers: list of customers
         customers_ptr: pointer to first customer that has not been arrived yet
-
     """
 
     def __init__(
@@ -28,10 +27,10 @@ class Pipeline:
             reception_rate: float,
             alpha: float,
             number_of_customers: int,
-            just_queue_length: bool
+            just_queue_length: bool,
+            draw: bool
     ):
         """
-
         Args:
             services_rate: list of service rate of each service
             interval_lambda: rate of enter interval
@@ -40,6 +39,7 @@ class Pipeline:
             number_of_customers: number of customers
             just_queue_length: if True just plot queues length
         """
+        self.draw = draw
         self.just_queue_length = just_queue_length
         self.timer = Timer.get_instance(reset=True)
         self.reception = ServiceProvider(1, [1 / reception_rate], self.timer)
@@ -110,13 +110,14 @@ class Pipeline:
                 if len(req.in_queue_time) != len(req.out_service_time):
                     req.out_service_time.append(req.leave_time())
         self.timer.current_time += 1
-        if self.just_queue_length:
-            self.plot_queue_length()
-        else:
-            print(
-                f"Simulation takes {(datetime.datetime.now() - now).total_seconds()} seconds"
-            )
-            self.calculate_metrics()
+        if self.draw:
+            if self.just_queue_length:
+                self.plot_queue_length()
+            else:
+                print(
+                    f"Simulation takes {(datetime.datetime.now() - now).total_seconds()} seconds"
+                )
+                self.calculate_metrics()
 
     def average_queue_length(self):
         average_queues_length = self.calculate_average_queues_length()
@@ -126,31 +127,41 @@ class Pipeline:
 
     def plot_queue_length(self):
         self.average_queue_length()
-        sum_of_queue_length = [0 for _ in range(self.timer.current_time)]
-        reception_queue_length = [0 for _ in range(self.timer.current_time)]
+        sum_of_queue_length = [0 for _ in range(100)]
+        reception_queue_length = [0 for _ in range(100)]
         service_queue_length = [
-            [0 for _ in range(self.timer.current_time)]
+            [0 for _ in range(100)]
             for j in range(len(self.services))
         ]
+
         for request in self.customers:
             if len(request.in_queue_time):
-                reception_queue_length[request.in_queue_time[0]] += 1
-                reception_queue_length[request.out_queue_time[0]] -= 1
-                sum_of_queue_length[request.in_queue_time[0]] += 1
-                sum_of_queue_length[request.out_queue_time[0]] -= 1
-
+                self.add_range(
+                    reception_queue_length,
+                    request.in_queue_time[0],
+                    request.out_queue_time[0]
+                )
+                self.add_range(
+                    sum_of_queue_length,
+                    request.in_queue_time[0],
+                    request.out_queue_time[0]
+                )
             if len(request.in_queue_time) == 2:
-                service_queue_length[request.part][request.in_queue_time[1]] += 1
-                service_queue_length[request.part][request.out_queue_time[1]] -= 1
-                sum_of_queue_length[request.in_queue_time[1]] += 1
-                sum_of_queue_length[request.out_queue_time[1]] -= 1
-        self.partial_sum(sum_of_queue_length)
-        self.plot("Sum of queues length", sum_of_queue_length)
-        self.partial_sum(reception_queue_length)
+                self.add_range(
+                    sum_of_queue_length,
+                    request.in_queue_time[1],
+                    request.out_queue_time[1]
+                )
+                self.add_range(
+                    service_queue_length[request.part],
+                    request.in_queue_time[1],
+                    request.out_queue_time[1]
+                )
         self.plot("Reception Queues length", reception_queue_length)
         for i in range(len(self.services)):
-            self.partial_sum(service_queue_length[i])
             self.plot(f"Service {i} Queues length", service_queue_length[i])
+
+        self.plot("Sum of queues length", sum_of_queue_length)
 
     def calculate_metrics(self):
         system_time = lambda request: request.out_service_time[-1] - request.enter_time
@@ -208,19 +219,22 @@ class Pipeline:
         return total / cnt
 
     def plot(self, name: str, data: List[int]):
-        number_of_bins = 100
-        new_data = [0 for i in range(number_of_bins)]
-        cnt = [0 for i in range(number_of_bins)]
-        for i in range(len(data)):
-            idx = i * number_of_bins // len(data)
-            new_data[idx] += data[i]
-            cnt[idx] += 1
-        for i in range(number_of_bins):
-            new_data[i] /= cnt[i]
+        T = (self.timer.current_time+99)//100
+        # number_of_bins = 100
+        # new_data = [0 for i in range(number_of_bins)]
+        # cnt = [0 for i in range(number_of_bins)]
+        # for i in range(len(data)):
+        #     idx = i * number_of_bins // len(data)
+        #     new_data[idx] += data[i]
+        #     cnt[idx] += 1
+        # for i in range(number_of_bins):
+        #     new_data[i] /= cnt[i]
+
+        new_data = [data[i] / T for i in range(100)]
         plt.hist(
             x=[i for i in range(len(new_data))],
             weights=new_data,
-            bins=number_of_bins,
+            bins=100,
             edgecolor="w",
         )  # , [i for i in range(len(data))])
         plt.title(name)
@@ -230,28 +244,62 @@ class Pipeline:
         for i in range(1, len(data)):
             data[i] += data[i - 1]
 
+    def add_range(self, data, l, r):
+        # print(l, r)
+        # print(data, cnt)
+        T = (self.timer.current_time + 99) // 100
+        i = l
+        while i//T < (l//T)+1 and i < r:
+            data[i//T] += 1
+            # cnt[i//T] += 1
+            i += 1
+        while i//T < r//T and i < r:
+            data[i//T] += T
+            # cnt[i//T] += T
+            i += T
+        while i < r:
+            data[i//T] += 1
+            # cnt[i//T] += 1
+            i += 1
+        # print(data)
+        # print('------')
     def draw_plots(self):
-        in_system_count = [0 for _ in range(self.timer.current_time)]
-        reception_queue_length = [0 for _ in range(self.timer.current_time)]
+        print(self.timer.current_time)
+        # in_system_count = [0 for _ in range(self.timer.current_time)]
+        # reception_queue_length = [0 for _ in range(self.timer.current_time)]
+        # service_queue_length = [
+        #     [0 for _ in range(self.timer.current_time)]
+        #     for j in range(len(self.services))
+        # ]
+        in_system_count = [0 for _ in range(100)]
+        reception_queue_length = [0 for _ in range(100)]
         service_queue_length = [
-            [0 for _ in range(self.timer.current_time)]
+            [0 for _ in range(100)]
             for j in range(len(self.services))
         ]
+
+
         for request in self.customers:
-            in_system_count[request.out_service_time[-1]] -= 1
-            in_system_count[request.in_queue_time[0]] += 1
+            self.add_range(
+                in_system_count,
+                request.in_queue_time[0],
+                request.out_service_time[-1]
+            )
             if len(request.in_queue_time):
-                reception_queue_length[request.in_queue_time[0]] += 1
-                reception_queue_length[request.out_queue_time[0]] -= 1
+                self.add_range(
+                    reception_queue_length,
+                    request.in_queue_time[0],
+                    request.out_queue_time[0]
+                )
             if len(request.in_queue_time) == 2:
-                service_queue_length[request.part][request.in_queue_time[1]] += 1
-                service_queue_length[request.part][request.out_queue_time[1]] -= 1
-        self.partial_sum(in_system_count)
+                self.add_range(
+                    service_queue_length[request.part],
+                    request.in_queue_time[1],
+                    request.out_queue_time[1]
+                )
         self.plot("In system count", in_system_count)
-        self.partial_sum(reception_queue_length)
         self.plot("Reception Queues length", reception_queue_length)
         for i in range(len(self.services)):
-            self.partial_sum(service_queue_length[i])
             self.plot(f"Service {i} Queues length", service_queue_length[i])
 
     def calculate_frequency(self):
